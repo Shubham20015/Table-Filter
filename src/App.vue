@@ -1,78 +1,57 @@
 <template>
   <div class="navbar">
-    <button class="filterBtn" v-if="!filter" @click="filter = true">Start Filter</button>
-    <button class="filterBtn" v-else @click="filter = false">Stop Filter</button>
+    <button class="filterBtn" v-if="!filter" @click="filter = true">
+      <i class="fa-solid fa-filter"></i> Start Filter
+    </button>
+    <button class="filterBtn" v-else @click="stopFilter">
+      <i class="fa-solid fa-filter"></i> Stop Filter
+    </button>
   </div>
-  <div class="propertiesSection" v-show="filter">
-    <p>Please select properties:</p>
-    <div class="filterBar">
-      <div>
-        <input type="radio" id="ID" name="properties" value="id" v-model="picked">
-        <label for="ID">ID</label>
-      </div>
-      <div>
-        <input type="radio" id="firstName" name="properties" value="first_name" v-model="picked">
-        <label for="firstName">First name</label>
-      </div>
-      <div>
-        <input type="radio" id="LastName" name="properties" value="last_name" v-model="picked">
-        <label for="LastName">Last name</label>
-      </div>
-      <div>
-        <input type="radio" id="email" name="properties" value="email" v-model="picked">
-        <label for="email">Email</label>
-      </div>
-      <div>
-        <input type="radio" id="phone" name="properties" value="phone" v-model="picked">
-        <label for="phone">Phone</label>
-      </div>
-      <div>
-        <input type="radio" id="gender" name="properties" value="gender" v-model="picked">
-        <label for="gender">Gender</label>
-      </div>
-      <div>
-        <input type="radio" id="ipAddress" name="properties" value="ip_address" v-model="picked">
-        <label for="ipAddress">IPAddress</label>
-      </div>
-      <button class="filterBtn" @click="sortData(false)">Sort A to Z</button>
-      <button class="filterBtn" @click="sortData(true)">Sort Z to A</button>
-    </div>
-  </div>
-    <h1 :style="{textAlign: 'center'}">Total length of Data: {{Data.length}}</h1>
   <div class="container">
-    <div class="distinctRecords">
-        <input type="text" class="searchBar" placeholder="Enter..." v-model="searchText"  />
-        <div>
-          <input type="checkbox" id="selectAll" @click="selectAll" v-model="allSelected">
-          <label for="selectAll">Select All</label>
-        </div>
-        <div v-for="(data,index) in filteredResources" :key="index">
-          <input type="checkbox" :id="data" :value="data" v-model="selected" @click="select" />
-          <label :for="data">{{data}}</label>
-        </div>
-        <button class="filterBtn" @click="filterData">Apply</button>
-        <!-- Cancel button to close the panel -->
-    </div>
-    <div class="grid">
-        <!-- <v-grid theme="compact" :source="rows" :columns="columns"/> -->
-      <h1 v-if="Data.length === 0">{{"No results found"}}</h1>
-      <template v-for="(data,index) in filterData" :key="index">
-        <div class="card">
-          <h4>Id: {{ data.id }}</h4>
-          <h2>Name: {{ data.first_name }} {{ data.last_name }}</h2>
-          <p>Email: {{ data.email }}</p>
-          <p>Phone: {{ data.phone }}</p>
-          <p>Gender: {{ data.gender }}</p>
-          <p>IP Address: {{ data.ip_address }}</p>
-        </div>
-      </template>
-    </div>
+    <table>
+      <thead>
+        <FilterMenu @close="closeMenu" @startFilter="filterApply" ref="menu"> 
+          <input class="searchBar" placeholder="Enter..." v-model="searchText" />
+          <div class="distinctRecords">
+            <div v-if="filteredResources.length != 0">
+              <input type="checkbox" id="selectAll" @change="selectAll" v-model="allSelected" />
+              <label for="selectAll">Select All</label>
+            </div>
+            <h6 v-else>{{"No matches found"}}</h6>
+            <div v-for="(data,index) in filteredResources" :key="index">
+              <input type="checkbox" :id="data" :value="data" v-model="selected" @click="select" />
+              <label :for="data">{{data}}</label>
+            </div>
+          </div>
+        </FilterMenu>
+        <tr>
+          <th data-column="id">id <i class="fa-solid fa-square-caret-down" v-if="filter" @click="[setPicked(),openMenu()]"></i></th>
+          <th data-column="first_name">First Name <i class="fa-solid fa-square-caret-down" v-if="filter" @click="[setPicked(),openMenu()]"></i></th>
+          <th data-column="last_name">Last Name <i class="fa-solid fa-square-caret-down" v-if="filter" @click="[setPicked(),openMenu()]"></i></th>
+          <th data-column="gender">Gender <i class="fa-solid fa-square-caret-down" v-if="filter" @click="[setPicked(),openMenu()]"></i></th>
+          <th data-column="phone">Phone <i class="fa-solid fa-square-caret-down" v-if="filter" @click="[setPicked(),openMenu()]"></i></th>
+          <th data-column="country">Country <i class="fa-solid fa-square-caret-down" v-if="filter" @click="[setPicked(),openMenu()]"></i></th>
+          <th data-column="ip_address">IP Address <i class="fa-solid fa-square-caret-down" v-if="filter" @click="[setPicked(),openMenu()]"></i></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="(data,index) in filterData()" :key="index">
+          <td>{{ data.id }}</td>
+          <td>{{ data.first_name }}</td>
+          <td>{{ data.last_name }}</td>
+          <td>{{ data.gender }}</td>
+          <td>{{ data.phone }}</td>
+          <td>{{ data.country }}</td>
+          <td>{{ data.ip_address }}</td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 </template>
 
 <script>
-// import VGrid from "@revolist/vue3-datagrid";
-import Data from './assets/MOCK_DATA.json';
+import Data from './assets/MOCK_DATA_1.json';
+import FilterMenu from './components/FilterMenu.vue';
 export default {
   name: "App",
   data() {
@@ -84,92 +63,90 @@ export default {
       filter: false,
       selected: [],
       allSelected: true,
+      menuStyle: {
+        top: 0,
+        left: 0,
+        menuItemPicked: 'first_name',
+        isOpen: false,
+      },
+      isApply: false,
     }
   },
-  mounted() {
-    this.distinctData();
+  provide() {
+    return {
+      menuStyle: this.menuStyle,
+    }
   },
   computed: {
     filteredResources () {
+      let arr = this.Data;
+      let value = this.picked;
       if(this.searchText){
-        return this.copyData.filter((item)=> item[this.picked].toLowerCase().includes(this.searchText.toLowerCase()))
-                            .map((item) => item[this.picked]);
-      }else{
-        return this.copyData.map((item) => item[this.picked]);
+        if(typeof this.Data[0][value] === "string")
+          arr = this.Data.filter((item)=> item[value].toLowerCase().includes(this.searchText.toLowerCase()));
+        else{
+          arr =  this.Data.filter((item)=> item[value] === parseInt(this.searchText));
+        }
       }
+      arr = [...new Set(arr.map(item => item[value]))].sort();
+      this.selected = arr;
+      return arr;
     }, 
-    filterData(){
-      return this.Data.filter((data) => this.selected.includes(data[this.picked]));
-    },
     selectAll() {
       this.selected = [];
-      if (!this.allSelected) {
-        for (let key in this.copyData) {
-            var obj = this.copyData[key];
+      if (this.allSelected) {
+        for (let key in this.Data) {
+            var obj = this.Data[key];
             this.selected.push(obj[this.picked]);
         }
       }
     },
   },
   methods: {
-    getSortOrder(prop) {    
-      return function(a, b) {    
-          if (a[prop] > b[prop]) {    
-              return 1;    
-          } else if (a[prop] < b[prop]) {    
-              return -1;    
-          }    
-          return 0;    
-      }    
+     filterData() {
+      this.copyData = this.copyData;
+      if(this.filter && this.isApply){
+        const result = this.copyData.filter((data) => this.selected.includes(data[this.picked]));
+        this.menuStyle.isOpen = false;
+        return result;
+      }
+      return this.copyData;
     },
-    sortData(dsc){
-      this.Data = this.Data.sort(this.getSortOrder(this.picked));
-      if(dsc){
-        this.Data.reverse();
+    select(event) {
+      this.allSelected = false;
+      let value = event.target.value;
+      if(this.selected.includes(value)){
+          this.selected = this.selected.filter(item => item !== value)
       }
     },
-    distinctData() {
-      this.selected = [...new Set(this.copyData.map(item => item[this.picked]))];
+    setPicked() {
+        this.picked = event.target.parentElement.attributes["data-column"].nodeValue;
     },
-    select() {
-      this.allSelected = false;
+    openMenu(){
+      this.isApply = false;
+      this.menuStyle.top = (event.layerY - 2) + "px";
+      this.menuStyle.left = (event.layerX) + "px";
+      this.menuStyle.menuItemPicked = this.picked;
+      this.searchText = "";
+      this.menuStyle.isOpen = !this.menuStyle.isOpen;
     },
+    closeMenu(){
+      this.menuStyle.isOpen = false;
+      this.allSelected = true;
+      this.selected = [...new Set(this.Data.map(item => item[this.picked]))].sort();
+    },
+    filterApply(){
+      this.isApply = true;
+    },
+    stopFilter() {
+      this.closeMenu();
+      this.filter = false;
+      this.filterData();
+    }
+  },
+  components: {
+    FilterMenu
   }
-  // data() {
-  //   return {
-  //     columns: [
-  //       {
-  //         name: "Birth",
-  //         prop: "birthdate",
-  //         columnType: "date",
-  //         size: 150,
-  //       },
-  //       {
-  //         prop: "name",
-  //         name: "First",
-  //       },
-  //       {
-  //         prop: "details",
-  //         name: "Second",
-  //       },
-  //     ],
-  //     rows: [
-  //       {
-  //         birthdate: "2022-08-24",
-  //         name: "1",
-  //         details: "Item 1",
-  //       },
-  //       {
-  //         birthdate: "2022-08-24",
-  //         name: "2",
-  //         details: "Item 2",
-  //       },
-  //     ],
-  //   };
-  // },
-  // components: {
-  //   VGrid,
-  // },
 };
 </script>
 
@@ -208,67 +185,58 @@ export default {
   opacity: 0.9;
 box-shadow: rgba(0, 0, 0, 0.16) 0px 1px 4px;
 }
-
 .container{
-    margin-top: 2.5rem;
     height: 100%;
     width: 100%;
-    display: flex;
-    justify-content: center;
-    column-gap: 6rem;
-}
-.grid{
-    height: 70%;
-    padding: 10px;
-    background: #fff;
-    width: 40%;
     overflow: auto;
 }
-.card{
-  background: rgb(174, 174, 174);
-  display: flex;
-  flex-direction: column;
-  padding: 10px;
-  margin: 0.5rem 0;
-  text-align: center;
+table { 
+	width: 70%; 
+	border-collapse: collapse; 
+	margin: 50px auto;
+  margin-bottom: 8rem;
+  overflow: auto;
 }
-.searchBar{
-  outline: none;
-  padding: 0 0.5rem;
+tr:nth-of-type(odd) { 
+	background: #eee; 
 }
-.propertiesSection{
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 1rem;
+tr:nth-of-type(even) { 
+	background: rgb(255, 255, 255); 
 }
-.filterBar{
-  margin-left: 20px;
-  display: flex;
-  align-items: center;
+td, th { 
+	padding: 10px; 
+	border: 1px solid #ccc; 
+	text-align: left; 
+	font-size: 18px;
 }
-.filterBar > *{
-  margin: 0 10px;
+thead{
+  position : relative;
+}
+th { 
+	background: #3498db; 
+	color: white; 
+	font-weight: bold; 
+  vertical-align: middle;
+}
+th i{
+  float: right;
+  cursor: pointer;
+  vertical-align: middle;
 }
 .distinctRecords{
-  background: azure;
-  height: 70%;
+  background: rgb(249, 249, 249);
+  border: 1px solid rgb(214, 214, 214);
+  padding: 0 5px;
+  height: 60%;
   overflow: auto;
 }
 .distinctRecords input {
   margin: 5px;
 }
-.btnSection{
-  display: flex;
-  padding: 5px;
-}
-.btnSection p{
-  text-decoration: underline;
-  font-size: 0.8rem;
-  margin-left: 5px;
-  cursor: pointer;
-}
-.btnSection p:hover{
-  color: #5014B8;
+.searchBar{
+  outline: none;
+  padding: 0.3rem 0.5rem;
+  margin: 10px 0;
+  width: 100%;
 }
 </style>
