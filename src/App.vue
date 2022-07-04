@@ -35,6 +35,9 @@
         </tr>
       </thead>
       <tbody>
+        <tr v-if="filterData().length == 0" :style="{'text-align': 'center'}">
+          <td colspan="7">Nothing to show</td>
+        </tr>
         <tr v-for="(data,index) in filterData()" :key="index">
           <td>{{ data.id }}</td>
           <td>{{ data.first_name }}</td>
@@ -59,6 +62,10 @@ export default {
       Data: Data,
       copyData: Data,
       searchText: "",
+      filterOpt: {
+        option: "None",
+        filterText: "",
+      },
       picked: 'first_name',
       filter: false,
       selected: [],
@@ -83,9 +90,9 @@ export default {
       let value = this.picked;
       if(this.searchText){
         if(typeof this.Data[0][value] === "string")
-          arr = this.Data.filter((item)=> item[value].toLowerCase().includes(this.searchText.toLowerCase()));
+          arr = arr.filter((item)=> item[value].toLowerCase().includes(this.searchText.toLowerCase()));
         else{
-          arr =  this.Data.filter((item)=> item[value] === parseInt(this.searchText));
+          arr =  arr.filter((item)=> item[value].toString().includes(this.searchText));
         }
       }
       arr = [...new Set(arr.map(item => item[value]))].sort();
@@ -96,25 +103,29 @@ export default {
       this.selected = [];
       if (this.allSelected) {
         for (let key in this.Data) {
-            var obj = this.Data[key];
-            this.selected.push(obj[this.picked]);
+          let obj = this.Data[key];
+          this.selected.push(obj[this.picked]);
         }
       }
     },
   },
   methods: {
      filterData() {
-      this.copyData = this.copyData;
+      let result = this.copyData;
       if(this.filter && this.isApply){
-        const result = this.copyData.filter((data) => this.selected.includes(data[this.picked]));
+        result = result.filter((data) => this.selected.includes(data[this.picked]));
+        result = this.filterByCondition(result);
         this.menuStyle.isOpen = false;
         return result;
       }
-      return this.copyData;
+      return result;
     },
     select(event) {
       this.allSelected = false;
       let value = event.target.value;
+      if(typeof this.selected[0] === 'number'){
+        value = parseInt(value);
+      }
       if(this.selected.includes(value)){
           this.selected = this.selected.filter(item => item !== value)
       }
@@ -124,8 +135,8 @@ export default {
     },
     openMenu(){
       this.isApply = false;
-      this.menuStyle.top = (event.layerY - 2) + "px";
-      this.menuStyle.left = (event.layerX) + "px";
+      this.menuStyle.top = (event.layerY - event.offsetY) + "px";
+      this.menuStyle.left = (event.layerX - event.offsetY) + "px";
       this.menuStyle.menuItemPicked = this.picked;
       this.searchText = "";
       this.menuStyle.isOpen = !this.menuStyle.isOpen;
@@ -135,13 +146,49 @@ export default {
       this.allSelected = true;
       this.selected = [...new Set(this.Data.map(item => item[this.picked]))].sort();
     },
-    filterApply(){
+    filterApply(data){
       this.isApply = true;
+      this.filterOpt.option = data["option"];
+      this.filterOpt.filterText = data["filterText"];
     },
     stopFilter() {
       this.closeMenu();
       this.filter = false;
       this.filterData();
+    },
+    filterByCondition(arr){
+      let choice = this.filterOpt.option;
+      let picked = this.picked;
+      let value = this.filterOpt.filterText.trim();
+      switch (choice){
+        case "greater": arr = arr.filter((item) => item[picked] > parseInt(value));
+                        break;
+        case "greater_equal": arr = arr.filter((item) => item[picked] >= parseInt(value));
+                        break;
+        case "lesser": arr = arr.filter((item) => item[picked] < parseInt(value));
+                        break;
+        case "lesser_equal": arr = arr.filter((item) => item[picked] <= parseInt(value));
+                              break;
+        case "equals": arr = arr.filter((item) => item[picked] == parseInt(value));
+                        break;
+        case "not_equals": arr = arr.filter((item) => item[picked] != parseInt(value));
+                            break;
+        case "contain": arr = arr.filter((item) => item[picked].toLowerCase().includes(value.toLowerCase()));
+                        break;
+        case "not_contain": arr = arr.filter((item) => !item[picked].toLowerCase().includes(value.toLowerCase()));
+                            break;
+        case "starts": arr = arr.filter((item) => item[picked].toLowerCase().startsWith(value.toLowerCase()));
+                        break;
+        case "ends": arr = arr.filter((item) => item[picked].toLowerCase().endsWith(value.toLowerCase()));
+                      break;
+        case "text_equals": arr = arr.filter((item) => item[picked].toLowerCase() === value.toLowerCase());
+                            break;
+        case "empty": arr = arr.filter((item) => item[picked].length === 0);
+                      break;
+        case "not_empty": arr = arr.filter((item) => item[picked].length !== 0);
+                          break;
+      }
+      return arr;
     }
   },
   components: {
@@ -209,6 +256,9 @@ td, th {
 	text-align: left; 
 	font-size: 18px;
 }
+td[colspan]:not([colspan="1"]) {
+    text-align: center;
+}
 thead{
   position : relative;
 }
@@ -227,7 +277,8 @@ th i{
   background: rgb(249, 249, 249);
   border: 1px solid rgb(214, 214, 214);
   padding: 0 5px;
-  height: 60%;
+  /* height: 50% */
+  height: 10rem;
   overflow: auto;
 }
 .distinctRecords input {
@@ -237,6 +288,8 @@ th i{
   outline: none;
   padding: 0.3rem 0.5rem;
   margin: 10px 0;
-  width: 100%;
+  width: 95%;
+  border: 1.5px solid gray;
+  border-radius: 5px;
 }
 </style>
